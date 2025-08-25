@@ -1,0 +1,340 @@
+{
+  "dashboard": {
+    "id": null,
+    "title": "IndraChain Overview - Railway Deployment",
+    "tags": ["indrachain", "railway", "umpf"],
+    "style": "dark",
+    "timezone": "browser",
+    "refresh": "30s",
+    "schemaVersion": 27,
+    "version": 1,
+    "time": {
+      "from": "now-1h",
+      "to": "now"
+    },
+    "panels": [
+      {
+        "id": 1,
+        "title": "Network Status",
+        "type": "stat",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
+        "targets": [
+          {
+            "expr": "up{job=\"indracore-vm\"}",
+            "legendFormat": "{{instance}}",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "thresholds"
+            },
+            "thresholds": {
+              "steps": [
+                {"color": "red", "value": 0},
+                {"color": "green", "value": 1}
+              ]
+            },
+            "mappings": [
+              {"type": "value", "value": "0", "text": "DOWN"},
+              {"type": "value", "value": "1", "text": "UP"}
+            ]
+          }
+        },
+        "options": {
+          "colorMode": "background",
+          "graphMode": "none",
+          "justifyMode": "center",
+          "orientation": "horizontal"
+        }
+      },
+      {
+        "id": 2,
+        "title": "Block Production Rate",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
+        "targets": [
+          {
+            "expr": "rate(indra_blocks_produced_total[5m])",
+            "legendFormat": "{{instance}}",
+            "refId": "A"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "blocks/second",
+            "min": 0
+          },
+          {
+            "show": false
+          }
+        ],
+        "legend": {
+          "show": true,
+          "values": true,
+          "current": true
+        }
+      },
+      {
+        "id": 3,
+        "title": "Transaction Processing",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 24, "x": 0, "y": 8},
+        "targets": [
+          {
+            "expr": "rate(indra_transactions_total[5m])",
+            "legendFormat": "Total TPS - {{instance}}",
+            "refId": "A"
+          },
+          {
+            "expr": "rate(indra_transactions_successful_total[5m])",
+            "legendFormat": "Successful TPS - {{instance}}",
+            "refId": "B"
+          },
+          {
+            "expr": "rate(indra_transactions_failed_total[5m])",
+            "legendFormat": "Failed TPS - {{instance}}",
+            "refId": "C"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "transactions/second",
+            "min": 0
+          },
+          {
+            "show": false
+          }
+        ],
+        "legend": {
+          "show": true,
+          "values": true,
+          "current": true,
+          "avg": true
+        }
+      },
+      {
+        "id": 4,
+        "title": "Account Abstraction Metrics",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 16},
+        "targets": [
+          {
+            "expr": "rate(indra_aa_transactions_total[5m])",
+            "legendFormat": "AA Transactions/sec",
+            "refId": "A"
+          },
+          {
+            "expr": "indra_aa_queue_depth",
+            "legendFormat": "AA Queue Depth",
+            "refId": "B"
+          },
+          {
+            "expr": "rate(indra_aa_validations_failed_total[5m])",
+            "legendFormat": "AA Validation Failures/sec",
+            "refId": "C"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "count",
+            "min": 0
+          },
+          {
+            "show": false
+          }
+        ]
+      },
+      {
+        "id": 5,
+        "title": "UMPF Pattern Analysis",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 16},
+        "targets": [
+          {
+            "expr": "rate(umpf_patterns_discovered_total[1h])",
+            "legendFormat": "Patterns Discovered/hour",
+            "refId": "A"
+          },
+          {
+            "expr": "umpf_equivalency_match_accuracy",
+            "legendFormat": "Equivalency Match Accuracy",
+            "refId": "B"
+          },
+          {
+            "expr": "umpf_analysis_duration_seconds",
+            "legendFormat": "Analysis Duration (s)",
+            "refId": "C"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "various metrics",
+            "min": 0
+          },
+          {
+            "show": false
+          }
+        ]
+      },
+      {
+        "id": 6,
+        "title": "System Resources",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 24},
+        "targets": [
+          {
+            "expr": "100 * (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes))",
+            "legendFormat": "Memory Usage % - {{instance}}",
+            "refId": "A"
+          },
+          {
+            "expr": "100 * (1 - rate(node_cpu_seconds_total{mode=\"idle\"}[5m]))",
+            "legendFormat": "CPU Usage % - {{instance}}",
+            "refId": "B"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "percentage",
+            "min": 0,
+            "max": 100
+          },
+          {
+            "show": false
+          }
+        ]
+      },
+      {
+        "id": 7,
+        "title": "Network Latency",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 24},
+        "targets": [
+          {
+            "expr": "indra_network_latency_seconds",
+            "legendFormat": "Network Latency - {{instance}}",
+            "refId": "A"
+          },
+          {
+            "expr": "indra_consensus_round_duration_seconds",
+            "legendFormat": "Consensus Round Duration - {{instance}}",
+            "refId": "B"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "seconds",
+            "min": 0
+          },
+          {
+            "show": false
+          }
+        ]
+      },
+      {
+        "id": 8,
+        "title": "Database Performance",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 32},
+        "targets": [
+          {
+            "expr": "rate(pg_stat_database_tup_inserted[5m])",
+            "legendFormat": "DB Inserts/sec",
+            "refId": "A"
+          },
+          {
+            "expr": "rate(pg_stat_database_tup_updated[5m])",
+            "legendFormat": "DB Updates/sec",
+            "refId": "B"
+          },
+          {
+            "expr": "pg_stat_activity_count",
+            "legendFormat": "Active Connections",
+            "refId": "C"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "operations/connections",
+            "min": 0
+          },
+          {
+            "show": false
+          }
+        ]
+      },
+      {
+        "id": 9,
+        "title": "API Gateway Performance",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 32},
+        "targets": [
+          {
+            "expr": "rate(http_requests_total[5m])",
+            "legendFormat": "Requests/sec - {{status}}",
+            "refId": "A"
+          },
+          {
+            "expr": "histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m]))",
+            "legendFormat": "95th Percentile Response Time",
+            "refId": "B"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "req/sec, seconds",
+            "min": 0
+          },
+          {
+            "show": false
+          }
+        ]
+      },
+      {
+        "id": 10,
+        "title": "Monadic Layer Performance",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 24, "x": 0, "y": 40},
+        "targets": [
+          {
+            "expr": "rate(indra_maybe_operations_total[5m])",
+            "legendFormat": "Maybe Monad Ops/sec",
+            "refId": "A"
+          },
+          {
+            "expr": "rate(indra_state_transitions_total[5m])",
+            "legendFormat": "State Monad Transitions/sec",
+            "refId": "B"
+          },
+          {
+            "expr": "rate(indra_io_operations_total[5m])",
+            "legendFormat": "IO Monad Ops/sec",
+            "refId": "C"
+          },
+          {
+            "expr": "rate(indra_free_computations_total[5m])",
+            "legendFormat": "Free Monad Computations/sec",
+            "refId": "D"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "operations/second",
+            "min": 0
+          },
+          {
+            "show": false
+          }
+        ],
+        "legend": {
+          "show": true,
+          "values": true,
+          "current": true,
+          "avg": true
+        }
+      }
+    ]
+  }
+}

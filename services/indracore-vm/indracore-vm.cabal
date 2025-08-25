@@ -1,0 +1,188 @@
+cabal-version:      3.0
+name:               indracore-vm
+version:            0.1.0.0
+synopsis:           IndraChain Core Virtual Machine for Railway Deployment
+description:        
+    Haskell-based blockchain virtual machine with native Account Abstraction,
+    optimized for Railway cloud deployment and UMPF pattern recognition.
+category:           Blockchain
+homepage:           https://github.com/exponentlabshq/indrachain
+bug-reports:        https://github.com/exponentlabshq/indrachain/issues
+license:            MIT
+license-file:       LICENSE
+author:             Michael Jagdeo
+maintainer:         technical@indrachain.org
+copyright:          2025 Exponent Labs LLC
+
+extra-source-files: 
+    CHANGELOG.md
+    README.md
+    config/*.yaml
+
+common common-options
+  ghc-options:        -Wall
+                      -Wcompat
+                      -Widentities
+                      -Wincomplete-uni-patterns
+                      -Wincomplete-record-updates
+                      -Wredundant-constraints
+                      -Wpartial-fields
+                      -Wmissing-export-lists
+                      -Wmissing-home-modules
+                      -Wunused-packages
+
+  default-language:   Haskell2010
+  default-extensions: 
+    OverloadedStrings
+    DeriveGeneric
+    DeriveDataTypeable
+    GeneralizedNewtypeDeriving
+    FlexibleContexts
+    FlexibleInstances
+    MultiParamTypeClasses
+    TypeApplications
+    ScopedTypeVariables
+    RankNTypes
+    ExistentialQuantification
+    GADTs
+    StandaloneDeriving
+    DerivingStrategies
+    DerivingVia
+
+library
+  import:           common-options
+  exposed-modules:  
+    IndraCore.VM
+    IndraCore.Consensus
+    IndraCore.Transaction
+    IndraCore.AccountAbstraction
+    IndraCore.Ledger
+    IndraCore.Crypto
+    IndraCore.Network
+    IndraCore.API
+    IndraCore.Monitoring
+    IndraCore.UMPF
+    IndraCore.Config
+    IndraCore.Types
+    IndraCore.Utils
+
+  other-modules:
+    IndraCore.VM.Core
+    IndraCore.VM.Interpreter
+    IndraCore.VM.Gas
+    IndraCore.Consensus.IndraPoS
+    IndraCore.Consensus.VRF
+    IndraCore.Transaction.Validation
+    IndraCore.Transaction.Pool
+    IndraCore.AccountAbstraction.Rules
+    IndraCore.AccountAbstraction.Processor
+    IndraCore.Ledger.State
+    IndraCore.Ledger.UTXO
+    IndraCore.Network.P2P
+    IndraCore.Network.RPC
+    IndraCore.UMPF.PatternRecognition
+    IndraCore.UMPF.Equivalencies
+
+  build-depends:
+    -- Core dependencies
+    base >= 4.16 && < 5,
+    bytestring >= 0.11,
+    text >= 2.0,
+    containers >= 0.6,
+    unordered-containers >= 0.2.19,
+    vector >= 0.13,
+    
+    -- JSON and serialization
+    aeson >= 2.0,
+    cereal >= 0.5,
+    binary >= 0.8,
+    
+    -- Database
+    postgresql-simple >= 0.6,
+    resource-pool >= 0.4,
+    
+    -- Caching
+    hedis >= 0.15,
+    
+    -- Web framework
+    servant >= 0.19,
+    servant-server >= 0.19,
+    warp >= 3.3,
+    wai >= 3.2,
+    wai-cors >= 0.2,
+    wai-extra >= 3.1,
+    http-types >= 0.12,
+    
+    -- Logging
+    monad-logger >= 0.3,
+    fast-logger >= 3.1,
+    
+    -- Concurrency
+    stm >= 2.5,
+    async >= 2.2,
+    
+    -- Cryptography
+    cryptonite >= 0.30,
+    memory >= 0.18,
+    
+    -- Utilities
+    uuid >= 1.3,
+    time >= 1.12,
+    random >= 1.2,
+    mtl >= 2.3,
+    transformers >= 0.6,
+    
+    -- Configuration
+    yaml >= 0.11,
+    optparse-applicative >= 0.17,
+    
+    -- Network
+    network >= 3.1,
+    websockets >= 0.12
+
+  hs-source-dirs:   src
+
+executable indracore-vm
+  import:           common-options
+  main-is:          Main.hs
+  other-modules:    
+    CLI.Options
+    CLI.Commands
+
+  build-depends:
+    base,
+    indracore-vm,
+    optparse-applicative,
+    yaml
+
+  hs-source-dirs:   app
+  ghc-options:      -threaded -rtsopts -with-rtsopts=-N
+
+test-suite indracore-vm-test
+  import:           common-options
+  type:             exitcode-stdio-1.0
+  hs-source-dirs:   test
+  main-is:          Spec.hs
+  other-modules:
+    Test.IndraCore.VM
+    Test.IndraCore.Consensus
+    Test.IndraCore.AccountAbstraction
+    Test.Railway.Integration
+
+  build-depends:
+    base,
+    indracore-vm,
+    hspec >= 2.9,
+    QuickCheck >= 2.14,
+    hspec-discover
+
+benchmark indracore-vm-bench
+  import:           common-options
+  type:             exitcode-stdio-1.0
+  hs-source-dirs:   bench
+  main-is:          Main.hs
+
+  build-depends:
+    base,
+    indracore-vm,
+    criterion >= 1.5

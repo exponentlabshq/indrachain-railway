@@ -1,0 +1,111 @@
+# Prometheus Configuration for IndraChain Railway Deployment
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    environment: 'railway'
+    project: 'indrachain'
+
+# Alertmanager configuration
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+          # - alertmanager:9093
+
+# Load rules once and periodically evaluate them according to the global 'evaluation_interval'.
+rule_files:
+  - "alert_rules.yml"
+  - "recording_rules.yml"
+
+# Scrape configuration
+scrape_configs:
+  # Prometheus itself
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  # IndraCore VM Nodes
+  - job_name: 'indracore-vm'
+    static_configs:
+      - targets: 
+        - 'indracore-vm-1:9933'
+        - 'indracore-vm-2:9934' 
+        - 'indracore-vm-3:9935'
+    metrics_path: '/metrics'
+    scrape_interval: 10s
+    params:
+      collect[]:
+        - 'indra_consensus_metrics'
+        - 'indra_transaction_metrics'
+        - 'indra_ledger_metrics'
+        - 'indra_network_metrics'
+
+  # Account Abstraction Processor
+  - job_name: 'aa-processor'
+    static_configs:
+      - targets: ['aa-processor:8080']
+    metrics_path: '/metrics'
+    scrape_interval: 10s
+    params:
+      collect[]:
+        - 'indra_aa_metrics'
+        - 'indra_validation_metrics'
+
+  # API Gateway
+  - job_name: 'api-gateway'
+    static_configs:
+      - targets: ['api-gateway:3000']
+    metrics_path: '/metrics'
+    scrape_interval: 10s
+
+  # UMPF Pattern Analyzer
+  - job_name: 'umpf-analyzer'
+    static_configs:
+      - targets: ['umpf-analyzer:5000']
+    metrics_path: '/metrics'
+    scrape_interval: 30s
+    params:
+      collect[]:
+        - 'umpf_pattern_metrics'
+        - 'umpf_equivalency_metrics'
+        - 'umpf_analysis_metrics'
+
+  # PostgreSQL Exporter (if available)
+  - job_name: 'postgres'
+    static_configs:
+      - targets: ['postgres:5432']
+    metrics_path: '/metrics'
+    scrape_interval: 30s
+
+  # Redis Exporter (if available)  
+  - job_name: 'redis'
+    static_configs:
+      - targets: ['redis:6379']
+    metrics_path: '/metrics'
+    scrape_interval: 30s
+
+  # Node Exporter for system metrics (if deployed)
+  - job_name: 'node-exporter'
+    static_configs:
+      - targets: 
+        - 'indracore-vm-1:9100'
+        - 'indracore-vm-2:9100'
+        - 'indracore-vm-3:9100'
+    scrape_interval: 15s
+
+  # Custom UMPF Metrics Collection
+  - job_name: 'umpf-custom-metrics'
+    static_configs:
+      - targets: ['umpf-analyzer:5001']
+    metrics_path: '/custom-metrics'
+    scrape_interval: 60s
+    params:
+      format: ['prometheus']
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: 'umpf-analyzer:5001'

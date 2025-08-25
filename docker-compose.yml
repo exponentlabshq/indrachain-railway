@@ -1,0 +1,224 @@
+# IndraChain Railway Development Environment
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: indrachain
+      POSTGRES_USER: indra
+      POSTGRES_PASSWORD: development_password
+      POSTGRES_HOST_AUTH_METHOD: trust
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./infrastructure/database-init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U indra -d indrachain"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    environment:
+      REDIS_MAXMEMORY: 256mb
+      REDIS_MAXMEMORY_POLICY: allkeys-lru
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # IndraCore Validator Node 1 (Bootnode)
+  indracore-vm-1:
+    build:
+      context: ./services/indracore-vm
+      dockerfile: Dockerfile
+    environment:
+      NODE_ID: validator-1
+      CONSENSUS_ROLE: validator
+      NETWORK_PORT: 9944
+      RPC_PORT: 9933
+      BOOTNODE: "true"
+      DATABASE_URL: postgres://indra:development_password@postgres:5432/indrachain
+      REDIS_URL: redis://redis:6379
+    ports:
+      - "9933:9933"
+      - "9944:9944"
+      - "30333:30333"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - indra_data_1:/app/data
+      - ./config:/app/config:ro
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9933/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 120s
+
+  # IndraCore Validator Node 2
+  indracore-vm-2:
+    build:
+      context: ./services/indracore-vm
+      dockerfile: Dockerfile
+    environment:
+      NODE_ID: validator-2
+      CONSENSUS_ROLE: validator
+      NETWORK_PORT: 9945
+      RPC_PORT: 9934
+      BOOTNODE: "false"
+      BOOTNODE_ADDRESS: indracore-vm-1:9944
+      DATABASE_URL: postgres://indra:development_password@postgres:5432/indrachain
+      REDIS_URL: redis://redis:6379
+    ports:
+      - "9934:9934"
+      - "9945:9945"
+      - "30334:30333"
+    depends_on:
+      indracore-vm-1:
+        condition: service_healthy
+    volumes:
+      - indra_data_2:/app/data
+      - ./config:/app/config:ro
+
+  # IndraCore Validator Node 3
+  indracore-vm-3:
+    build:
+      context: ./services/indracore-vm
+      dockerfile: Dockerfile
+    environment:
+      NODE_ID: validator-3
+      CONSENSUS_ROLE: validator
+      NETWORK_PORT: 9946
+      RPC_PORT: 9935
+      BOOTNODE: "false"
+      BOOTNODE_ADDRESS: indracore-vm-1:9944
+      DATABASE_URL: postgres://indra:development_password@postgres:5432/indrachain
+      REDIS_URL: redis://redis:6379
+    ports:
+      - "9935:9935"
+      - "9946:9946"
+      - "30335:30333"
+    depends_on:
+      indracore-vm-1:
+        condition: service_healthy
+    volumes:
+      - indra_data_3:/app/data
+      - ./config:/app/config:ro
+
+  # Account Abstraction Processor
+  aa-processor:
+    build:
+      context: ./services/aa-processor
+      dockerfile: Dockerfile
+    environment:
+      MAX_AA_COMPLEXITY: 1000
+      COLLATERAL_THRESHOLD: 10000
+      VALIDATOR_ENDPOINTS: "indracore-vm-1:9933,indracore-vm-2:9934,indracore-vm-3:9935"
+      REDIS_URL: redis://redis:6379
+      DATABASE_URL: postgres://indra:development_password@postgres:5432/indrachain
+      PROCESSING_THREADS: 4
+    ports:
+      - "8080:8080"
+    depends_on:
+      indracore-vm-1:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - aa_data:/app/data
+      - ./config:/app/config:ro
+
+  # API Gateway
+  api-gateway:
+    build:
+      context: ./services/api-gateway
+      dockerfile: Dockerfile
+    environment:
+      RATE_LIMIT_PER_MINUTE: 1000
+      CORS_ORIGINS: "*"
+      VALIDATOR_ENDPOINTS: "indracore-vm-1:9933,indracore-vm-2:9934,indracore-vm-3:9935"
+      AA_PROCESSOR_ENDPOINT: aa-processor:8080
+      JWT_SECRET: development_jwt_secret_key
+      LOG_LEVEL: INFO
+    ports:
+      - "3000:3000"
+    depends_on:
+      - indracore-vm-1
+      - aa-processor
+    volumes:
+      - ./config:/app/config:ro
+
+  # Monitoring Stack
+  monitoring:
+    build:
+      context: ./services/monitoring
+      dockerfile: Dockerfile
+    environment:
+      PROMETHEUS_PORT: 9090
+      GRAFANA_PORT: 3000
+      METRICS_ENDPOINTS: "indracore-vm-1:9933/metrics,indracore-vm-2:9934/metrics,indracore-vm-3:9935/metrics,aa-processor:8080/metrics,api-gateway:3000/metrics"
+      GRAFANA_ADMIN_PASSWORD: admin
+    ports:
+      - "3001:3000"  # Grafana
+      - "9090:9090"  # Prometheus
+    depends_on:
+      - indracore-vm-1
+      - indracore-vm-2
+      - indracore-vm-3
+      - aa-processor
+    volumes:
+      - monitoring_data:/app/data
+      - ./services/monitoring/config:/app/config:ro
+      - ./services/monitoring/dashboards:/app/grafana/dashboards:ro
+
+  # UMPF Pattern Analyzer
+  umpf-analyzer:
+    build:
+      context: ./services/umpf-analyzer
+      dockerfile: Dockerfile
+    environment:
+      ANALYSIS_INTERVAL: 60
+      PATTERN_DISCOVERY_ENABLED: "true"
+      EQUIVALENCY_THRESHOLD: 0.85
+      CROSS_DOMAIN_ANALYSIS: "true"
+      DATABASE_URL: postgres://indra:development_password@postgres:5432/indrachain
+      REDIS_URL: redis://redis:6379
+    ports:
+      - "5000:5000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - umpf_data:/app/data
+      - ./services/umpf-analyzer/models:/app/models:ro
+      - ./services/umpf-analyzer/config:/app/config:ro
+
+volumes:
+  postgres_data:
+  redis_data:
+  indra_data_1:
+  indra_data_2:
+  indra_data_3:
+  aa_data:
+  monitoring_data:
+  umpf_data:
+
+networks:
+  default:
+    name: indrachain_network

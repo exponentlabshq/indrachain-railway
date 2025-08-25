@@ -1,0 +1,231 @@
+# IndraChain Alert Rules for Railway Deployment
+groups:
+  - name: indracore_alerts
+    rules:
+      # Node connectivity alerts
+      - alert: IndracoreNodeDown
+        expr: up{job="indracore-vm"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "IndraCore node {{ $labels.instance }} is down"
+          description: "IndraCore validator node {{ $labels.instance }} has been down for more than 2 minutes."
+
+      # Consensus alerts
+      - alert: ConsensusFailure
+        expr: increase(indra_consensus_failures_total[5m]) > 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Consensus failure detected on {{ $labels.instance }}"
+          description: "IndraCore node {{ $labels.instance }} has experienced consensus failures in the last 5 minutes."
+
+      # Block production alerts
+      - alert: SlowBlockProduction
+        expr: rate(indra_blocks_produced_total[5m]) < 0.05
+        for: 3m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Slow block production on {{ $labels.instance }}"
+          description: "Block production rate is below 0.05 blocks/second on {{ $labels.instance }}."
+
+      # Transaction processing alerts
+      - alert: HighTransactionFailureRate
+        expr: rate(indra_transactions_failed_total[5m]) / rate(indra_transactions_total[5m]) > 0.1
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High transaction failure rate on {{ $labels.instance }}"
+          description: "Transaction failure rate is above 10% on {{ $labels.instance }}."
+
+      # Memory usage alerts
+      - alert: HighMemoryUsage
+        expr: (node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes) / node_memory_MemTotal_bytes > 0.9
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High memory usage on {{ $labels.instance }}"
+          description: "Memory usage is above 90% on {{ $labels.instance }}."
+
+      # Disk usage alerts
+      - alert: HighDiskUsage
+        expr: (node_filesystem_size_bytes - node_filesystem_free_bytes) / node_filesystem_size_bytes > 0.85
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High disk usage on {{ $labels.instance }}"
+          description: "Disk usage is above 85% on {{ $labels.instance }}."
+
+  - name: aa_processor_alerts
+    rules:
+      # AA Processor availability
+      - alert: AAProcessorDown
+        expr: up{job="aa-processor"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Account Abstraction Processor is down"
+          description: "The AA Processor has been unreachable for more than 1 minute."
+
+      # High AA transaction queue
+      - alert: HighAAQueue
+        expr: indra_aa_queue_depth > 1000
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High AA transaction queue depth"
+          description: "AA transaction queue depth is {{ $value }}, indicating processing backlog."
+
+      # AA validation failures
+      - alert: HighAAValidationFailures
+        expr: rate(indra_aa_validations_failed_total[5m]) > 10
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High AA validation failure rate"
+          description: "AA validation failures are occurring at {{ $value }}/second."
+
+      # Complex AA transactions
+      - alert: ComplexAATransactions
+        expr: increase(indra_aa_complex_transactions_total[10m]) > 50
+        for: 5m
+        labels:
+          severity: info
+        annotations:
+          summary: "High number of complex AA transactions"
+          description: "{{ $value }} complex AA transactions processed in the last 10 minutes."
+
+  - name: umpf_analyzer_alerts
+    rules:
+      # UMPF Analyzer availability
+      - alert: UMPFAnalyzerDown
+        expr: up{job="umpf-analyzer"} == 0
+        for: 3m
+        labels:
+          severity: warning
+        annotations:
+          summary: "UMPF Pattern Analyzer is down"
+          description: "The UMPF Analyzer service has been unreachable for more than 3 minutes."
+
+      # Pattern discovery rate
+      - alert: LowPatternDiscoveryRate
+        expr: rate(umpf_patterns_discovered_total[1h]) < 5
+        for: 30m
+        labels:
+          severity: info
+        annotations:
+          summary: "Low pattern discovery rate"
+          description: "UMPF pattern discovery rate is below 5 patterns/hour."
+
+      # Equivalency matching accuracy
+      - alert: LowEquivalencyAccuracy
+        expr: umpf_equivalency_match_accuracy < 0.8
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Low equivalency matching accuracy"
+          description: "UMPF equivalency matching accuracy is {{ $value }}, below 80% threshold."
+
+      # Analysis processing time
+      - alert: SlowPatternAnalysis
+        expr: umpf_analysis_duration_seconds > 300
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Slow UMPF pattern analysis"
+          description: "UMPF pattern analysis taking {{ $value }} seconds, above 5-minute threshold."
+
+  - name: database_alerts
+    rules:
+      # PostgreSQL connectivity
+      - alert: PostgreSQLDown
+        expr: up{job="postgres"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "PostgreSQL database is down"
+          description: "PostgreSQL database has been unreachable for more than 1 minute."
+
+      # Database connection pool
+      - alert: HighDatabaseConnections
+        expr: pg_stat_activity_count > 80
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High number of database connections"
+          description: "PostgreSQL has {{ $value }} active connections, approaching limits."
+
+      # Redis connectivity
+      - alert: RedisDown
+        expr: up{job="redis"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Redis cache is down"
+          description: "Redis cache has been unreachable for more than 1 minute."
+
+      # Redis memory usage
+      - alert: HighRedisMemoryUsage
+        expr: redis_memory_used_bytes / redis_memory_max_bytes > 0.9
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High Redis memory usage"
+          description: "Redis memory usage is {{ $value | humanizePercentage }}, above 90% threshold."
+
+  - name: api_gateway_alerts
+    rules:
+      # API Gateway availability
+      - alert: APIGatewayDown
+        expr: up{job="api-gateway"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "API Gateway is down"
+          description: "API Gateway has been unreachable for more than 1 minute."
+
+      # High error rate
+      - alert: HighAPIErrorRate
+        expr: rate(http_requests_total{status=~"5.."}[5m]) / rate(http_requests_total[5m]) > 0.05
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High API error rate"
+          description: "API error rate is {{ $value | humanizePercentage }}, above 5% threshold."
+
+      # High response time
+      - alert: HighAPIResponseTime
+        expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m])) > 2
+        for: 3m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High API response time"
+          description: "95th percentile API response time is {{ $value }}s, above 2-second threshold."
+
+      # Rate limiting
+      - alert: HighRateLimitHits
+        expr: rate(http_requests_total{status="429"}[5m]) > 10
+        for: 2m
+        labels:
+          severity: info
+        annotations:
+          summary: "High rate limit hits"
+          description: "Rate limiting is being triggered {{ $value }} times/second."

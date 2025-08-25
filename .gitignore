@@ -1,0 +1,120 @@
+# Railway deployment gitignore
+
+# Haskell
+dist
+dist-*
+cabal-dev
+*.o
+*.hi
+*.hie
+*.chi
+*.chs.h
+*.dyn_o
+*.dyn_hi
+.hpc
+.hsenv
+.cabal-sandbox/
+cabal.sandbox.config
+*.prof
+*.aux
+*.hp
+*.eventlog
+.stack-work/
+cabal.project.local
+cabal.project.local~
+.HTF/
+.ghc.environment.*
+
+# Docker
+.dockerignore
+Dockerfile.local
+
+# Environment variables
+.env
+.env.local
+.env.production
+.env.staging
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+data/postgres/
+data/redis/
+
+# Node modules
+node_modules/
+jspm_packages/
+
+# Python (for UMPF analyzer)
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+.pytest_cache/
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Temporary files
+tmp/
+temp/
+.tmp/
+
+# Keys and certificates (NEVER commit these)
+*.key
+*.pem
+*.cert
+*.crt
+*.p12
+keys/
+certs/
+secrets/
+
+# Local development
+docker-compose.override.yml
+docker-compose.local.yml
+.railway/
+
+# Monitoring data
+prometheus-data/
+grafana-data/
+
+# Build artifacts
+.stack-work/
+_build/
+*.tgz
+*.tar.gz

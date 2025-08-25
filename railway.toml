@@ -1,0 +1,121 @@
+[build]
+builder = "dockerfile"
+
+[deploy]
+healthcheckPath = "/health"
+healthcheckTimeout = 300
+restartPolicyType = "always"
+
+# IndraCore Validator Node 1
+[[services]]
+name = "indracore-vm-1"
+dockerfile = "services/indracore-vm/Dockerfile"
+
+[services.indracore-vm-1.variables]
+NODE_ID = "validator-1"
+CONSENSUS_ROLE = "validator"
+NETWORK_PORT = "9944"
+RPC_PORT = "9933"
+BOOTNODE = "false"
+VALIDATOR_KEY_PATH = "/app/keys/validator-1.key"
+NETWORK_KEY_PATH = "/app/keys/network-1.key"
+
+# IndraCore Validator Node 2
+[[services]]
+name = "indracore-vm-2"
+dockerfile = "services/indracore-vm/Dockerfile"
+
+[services.indracore-vm-2.variables]
+NODE_ID = "validator-2"
+CONSENSUS_ROLE = "validator"
+NETWORK_PORT = "9945"
+RPC_PORT = "9934"
+BOOTNODE = "false"
+VALIDATOR_KEY_PATH = "/app/keys/validator-2.key"
+NETWORK_KEY_PATH = "/app/keys/network-2.key"
+BOOTNODE_ADDRESS = "indracore-vm-1:9944"
+
+# IndraCore Validator Node 3
+[[services]]
+name = "indracore-vm-3"
+dockerfile = "services/indracore-vm/Dockerfile"
+
+[services.indracore-vm-3.variables]
+NODE_ID = "validator-3"
+CONSENSUS_ROLE = "validator"
+NETWORK_PORT = "9946"
+RPC_PORT = "9935"
+BOOTNODE = "false"
+VALIDATOR_KEY_PATH = "/app/keys/validator-3.key"
+NETWORK_KEY_PATH = "/app/keys/network-3.key"
+BOOTNODE_ADDRESS = "indracore-vm-1:9944"
+
+# Account Abstraction Processor
+[[services]]
+name = "aa-processor"
+dockerfile = "services/aa-processor/Dockerfile"
+
+[services.aa-processor.variables]
+MAX_AA_COMPLEXITY = "1000"
+COLLATERAL_THRESHOLD = "10000"
+VALIDATOR_ENDPOINTS = "indracore-vm-1:9933,indracore-vm-2:9934,indracore-vm-3:9935"
+REDIS_URL = "${{ Redis.REDIS_URL }}"
+PROCESSING_THREADS = "4"
+
+# API Gateway
+[[services]]
+name = "api-gateway"
+dockerfile = "services/api-gateway/Dockerfile"
+
+[services.api-gateway.variables]
+RATE_LIMIT_PER_MINUTE = "1000"
+CORS_ORIGINS = "*"
+VALIDATOR_ENDPOINTS = "indracore-vm-1:9933,indracore-vm-2:9934,indracore-vm-3:9935"
+AA_PROCESSOR_ENDPOINT = "aa-processor:8080"
+JWT_SECRET = "${{ secrets.JWT_SECRET }}"
+LOG_LEVEL = "INFO"
+
+# Monitoring and Analytics Service
+[[services]]
+name = "monitoring"
+dockerfile = "services/monitoring/Dockerfile"
+
+[services.monitoring.variables]
+PROMETHEUS_PORT = "9090"
+GRAFANA_PORT = "3000"
+METRICS_ENDPOINTS = "indracore-vm-1:9933/metrics,indracore-vm-2:9934/metrics,indracore-vm-3:9935/metrics,aa-processor:8080/metrics,api-gateway:8080/metrics"
+GRAFANA_ADMIN_PASSWORD = "${{ secrets.GRAFANA_PASSWORD }}"
+ALERT_WEBHOOK_URL = "${{ secrets.ALERT_WEBHOOK }}"
+
+# UMPF Pattern Analysis Service
+[[services]]
+name = "umpf-analyzer"
+dockerfile = "services/umpf-analyzer/Dockerfile"
+
+[services.umpf-analyzer.variables]
+ANALYSIS_INTERVAL = "60"
+PATTERN_DISCOVERY_ENABLED = "true"
+EQUIVALENCY_THRESHOLD = "0.85"
+CROSS_DOMAIN_ANALYSIS = "true"
+TRAINING_DATA_PATH = "/app/data/umpf-patterns.json"
+MODEL_ENDPOINT = "http://umpf-analyzer:5000"
+
+# PostgreSQL Database
+[[services]]
+name = "postgres"
+image = "postgres:15-alpine"
+
+[services.postgres.variables]
+POSTGRES_DB = "indrachain"
+POSTGRES_USER = "indra"
+POSTGRES_PASSWORD = "${{ secrets.POSTGRES_PASSWORD }}"
+POSTGRES_HOST_AUTH_METHOD = "trust"
+
+# Redis Cache
+[[services]]
+name = "redis"
+image = "redis:7-alpine"
+
+[services.redis.variables]
+REDIS_MAXMEMORY = "256mb"
+REDIS_MAXMEMORY_POLICY = "allkeys-lru"
