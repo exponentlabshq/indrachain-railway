@@ -7,8 +7,9 @@ RUN apk add --no-cache curl bash
 # Create app directory
 WORKDIR /app
 
-# Copy server file
+# Copy application files
 COPY server.js .
+COPY blockchain-simulation.js .
 
 # Expose port
 EXPOSE 9933
